@@ -76,7 +76,7 @@ for shard in shards:
 
     
 # Initialize S3 client and upload data
-s3 = boto3.client('s3')
+#s3 = boto3.client('s3')
 bucket_name = 'reddit-batch-data'
 filename = f"reddit_batch.csv"
 
@@ -96,6 +96,6 @@ with open(filename, 'w') as f:
     json.dump(subreddit_data, f)
 
 # Upload the file to S3
-s3.upload_file(filename, bucket_name, filename)
+#s3.upload_file(filename, bucket_name, filename)
 
 print(f"Uploaded {filename} to S3 bucket {bucket_name}")
