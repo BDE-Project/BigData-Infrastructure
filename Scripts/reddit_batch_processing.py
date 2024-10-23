@@ -92,8 +92,8 @@ for post in subreddit.hot(limit=100):
     subreddit_data.append(data)
 
 # Save the data to a local file
-with open(filename, 'w') as f:
-    json.dump(subreddit_data, f)
+# with open(filename, 'w') as f:
+#     json.dump(subreddit_data, f)
 
 # Upload the file to S3
 #s3.upload_file(filename, bucket_name, filename)
