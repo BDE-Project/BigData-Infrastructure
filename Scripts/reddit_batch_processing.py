@@ -3,29 +3,52 @@ import boto3
 import os
 import json
 from datetime import datetime
+from botocore.exceptions import NoCredentialsError
 
-reddit = praw.Reddit(client_id='',
-                     client_secret='',
-                     user_agent = '')
+def get_secret():
+    secret_name = "redddit-user-secret" 
+    region_name = "eu-north-1"
 
-# Fetch top 20000 posts from a subreddit
-subreddit = reddit.subreddit('learnpython')
-for post in subreddit.hot(limit=20000):
-    print(post.title)
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+        secret = json.loads(get_secret_value_response['SecretString'])
+        return secret
+    except Exception as e:
+        print(f"Error retrieving secret: {e}")
+    return None
+
+
+# Fetch the secrets
+secrets = get_secret()
+if not secrets:
+    raise NoCredentialsError("Could not load secrets")
+
+# Set up Reddit API using secrets
+reddit = praw.Reddit(client_id=secrets['reddit_client_id'],
+                     client_secret=secrets['reddit_client_secret'],
+                     user_agent=secrets['reddit_user_agent'])
 
 # Check Boto3 version
 #print(boto3.__version__)
 
 
-# Set your AWS credentials
-os.environ['AWS_ACCESS_KEY_ID'] = ''
-os.environ['AWS_SECRET_ACCESS_KEY'] = ''
-os.environ['AWS_DEFAULT_REGION'] = 'eu-north-1'  
+# Set up AWS environment variables
+os.environ['AWS_ACCESS_KEY_ID'] = secrets['aws_access_key_id']
+os.environ['AWS_SECRET_ACCESS_KEY'] = secrets['aws_secret_access_key']
+os.environ['AWS_DEFAULT_REGION'] = secrets['aws_default_region']
 
-# Reddit API setup
-reddit = praw.Reddit( client_id='',
-                     client_secret='',
-                     user_agent = '')
+
+# Fetch top 20000 posts from a subreddit
+subreddit = reddit.subreddit('learnpython')
+for post in subreddit.hot(limit=20000):
+    print(post.title)
 
 # Kinesis setup
 kinesis = boto3.client('kinesis', region_name='eu-north-1')
@@ -45,23 +68,15 @@ for post in subreddit.hot(limit=10):
         PartitionKey='partition_key'
     )
 
-
-# Kinesis setup
-kinesis = boto3.client('kinesis', region_name='eu-north-1')
-
-# Get the stream description
+# Kinesis: Get stream description and print Shard IDs
 response = kinesis.describe_stream(StreamName='reddit-stream')
-
-# Print the Shard ID
 shards = response['StreamDescription']['Shards']
 for shard in shards:
     print(f"Shard ID: {shard['ShardId']}")
 
     
-# Initialize S3 client
+# Initialize S3 client and upload data
 s3 = boto3.client('s3')
-
-# Define the S3 bucket and file name
 bucket_name = 'reddit-batch-data'
 filename = f"reddit_batch.csv"
 
