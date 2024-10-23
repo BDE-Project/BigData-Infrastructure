@@ -3,7 +3,7 @@ name: Reddit Data Pipeline
 on:
   push:
     paths:
-      - 'reddit_batch_processing.py'  # Only trigger when this file changes
+      - 'Scripts/reddit_batch_processing.py'  # Only trigger when this file changes
 
 jobs:
   run-reddit-script:
@@ -32,4 +32,4 @@ jobs:
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}  
         run: |
-          python reddit_batch_processing.py
+          python Scripts/reddit_batch_processing.py
