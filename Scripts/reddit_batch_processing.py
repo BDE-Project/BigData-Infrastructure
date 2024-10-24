@@ -2,6 +2,8 @@ import praw
 import boto3
 import os
 import json
+import io  # To use StringIO for in-memory data
+import csv  # To create CSV format
 from datetime import datetime
 from botocore.exceptions import NoCredentialsError
 
@@ -24,7 +26,6 @@ def get_secret():
         print(f"Error retrieving secret: {e}")
     return None
 
-
 # Fetch the secrets
 secrets = get_secret()
 if not secrets:
@@ -35,26 +36,49 @@ reddit = praw.Reddit(client_id=secrets['reddit_client_id'],
                      client_secret=secrets['reddit_client_secret'],
                      user_agent=secrets['reddit_user_agent'])
 
-# Check Boto3 version
-#print(boto3.__version__)
-
-
 # Set up AWS environment variables
 os.environ['AWS_ACCESS_KEY_ID'] = secrets['aws_access_key_id']
 os.environ['AWS_SECRET_ACCESS_KEY'] = secrets['aws_secret_access_key']
 os.environ['AWS_DEFAULT_REGION'] = secrets['aws_default_region']
 
+# Initialize S3 client
+s3 = boto3.client('s3', region_name='eu-north-1')
+bucket_name = 'reddit-batch-data-bde'  # Ensure this is a unique bucket name
+filename = f"reddit_batch_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"  # Dynamic filename with timestamp
 
-# Fetch top 20000 posts from a subreddit
+# Fetch top 20,000 posts from subreddit
 subreddit = reddit.subreddit('learnpython')
-for post in subreddit.hot(limit=20000):
-    print(post.title)
+subreddit_data = []
 
-# Kinesis setup
+for post in subreddit.hot(limit=20000):
+    data = {
+        'title': post.title,
+        'score': post.score,
+        'url': post.url,
+        'comments': post.num_comments
+    }
+    subreddit_data.append(data)
+
+# Use StringIO to create an in-memory CSV file
+csv_buffer = io.StringIO()
+csv_writer = csv.DictWriter(csv_buffer, fieldnames=['title', 'score', 'url', 'comments'])
+csv_writer.writeheader()
+
+# Write only the first 100 posts to the CSV for testing purposes
+for data in subreddit_data[:100]:  # You can change this limit as needed
+    csv_writer.writerow(data)
+
+# Upload the CSV file directly from memory to S3
+try:
+    s3.put_object(Bucket=bucket_name, Key=filename, Body=csv_buffer.getvalue())
+    print(f"Uploaded {filename} to S3 bucket {bucket_name}")
+except Exception as e:
+    print(f"Error uploading file to S3: {e}")
+
+# Kinesis setup (this part remains unchanged)
 kinesis = boto3.client('kinesis', region_name='eu-north-1')
 
 # Stream Reddit data to Kinesis
-subreddit = reddit.subreddit('learnpython')
 for post in subreddit.hot(limit=10):
     data = {
         'title': post.title,
@@ -73,29 +97,3 @@ response = kinesis.describe_stream(StreamName='reddit-stream')
 shards = response['StreamDescription']['Shards']
 for shard in shards:
     print(f"Shard ID: {shard['ShardId']}")
-
-    
-# Initialize S3 client and upload data
-#s3 = boto3.client('s3')
-bucket_name = 'reddit-batch-data'
-filename = f"reddit_batch.csv"
-
-# Gather data from Reddit (similar to what you did for streaming)
-subreddit_data = []
-for post in subreddit.hot(limit=100):
-    data = {
-        'title': post.title,
-        'score': post.score,
-        'url': post.url,
-        'comments': post.num_comments
-    }
-    subreddit_data.append(data)
-
-# Save the data to a local file
-# with open(filename, 'w') as f:
-#     json.dump(subreddit_data, f)
-
-# Upload the file to S3
-#s3.upload_file(filename, bucket_name, filename)
-
-print(f"Uploaded {filename} to S3 bucket {bucket_name}")
