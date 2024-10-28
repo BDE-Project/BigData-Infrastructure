@@ -3,7 +3,7 @@ import json
 import re
 import pandas as pd
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from textblob import TextBlob
 import numpy as np
 from decimal import Decimal
@@ -33,7 +33,6 @@ stop_words = {
 # Set up AWS clients
 kinesis_client = boto3.client('kinesis', region_name='eu-north-1')  
 dynamodb_client = boto3.resource('dynamodb', region_name='eu-north-1')  
-
 
 kinesis_stream_name = 'reddit-bde' 
 dynamodb_table_name = 'tbl_reddit_processed' 
@@ -102,7 +101,6 @@ def preprocess_record(record):
     
     return record
 
-
 def detect_anomalies(data):
     # Convert DataFrame to ensure correct data types
     df = pd.DataFrame(data)
@@ -119,7 +117,6 @@ def detect_anomalies(data):
 
         for index in anomaly_indices:
             print(f"Anomaly detected in record {df.iloc[index]['id']}: {df.iloc[index]}")
-
 
 def get_records_from_kinesis(shard_iterator):
     """Retrieve records from the Kinesis stream."""
@@ -165,7 +162,6 @@ def save_to_dynamodb(record):
     except Exception as e:
         print(f"Error saving to DynamoDB: {e}")
 
-
 def main():
     # Get the stream description to retrieve the shard ID
     response = kinesis_client.describe_stream(StreamName=kinesis_stream_name)
@@ -180,8 +176,15 @@ def main():
     
     shard_iterator = shard_iterator_response['ShardIterator']
 
+    # Set the start time for the 30-minute limit
+    start_time = datetime.now(timezone.utc)
+    time_limit = timedelta(minutes=30)
+
     while True:
-        # Get records from Kinesis
+        # Check if the time limit has been reached
+        if datetime.now(timezone.utc) - start_time >= time_limit:
+            logging.info("30-minute processing time limit reached. Exiting.")
+            break
 
         # Get records from Kinesis
         records, shard_iterator = get_records_from_kinesis(shard_iterator)

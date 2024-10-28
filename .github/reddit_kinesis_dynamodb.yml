@@ -1,0 +1,35 @@
+name: Reddit Kinesis Stream Pipeline
+
+on:
+  push:
+    paths:
+      - 'Scripts/reddit_kinesis_2.py'  # Only trigger when this script is modified
+
+jobs:
+  run-reddit-stream:
+    runs-on: ubuntu-latest  # Run this job on the latest version of Ubuntu
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3  # Check out the code in the repository
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'  # Use any Python 3 version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install praw boto3 python-dotenv  # Install required libraries
+
+      - name: Run Reddit Stream Script
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}  # AWS access key from GitHub secrets
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}  # AWS secret key from GitHub secrets
+          AWS_DEFAULT_REGION: 'eu-north-1'  # Default AWS region
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}  # Reddit client ID from GitHub secrets
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}  # Reddit client secret from GitHub secrets
+          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}  # Reddit user agent from GitHub secrets
+        run: |
+          python Scripts/reddit_kinesis_2.py  # Run the data processing script
