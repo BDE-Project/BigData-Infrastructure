@@ -3,7 +3,7 @@ name: Reddit Kinesis Stream Pipeline
 on:
   push:
     paths:
-      - 'reddit_kinesis_1.py'  # Only run when this script is modified
+      - 'Scripts/reddit_kinesis_1.py'  # Only run when this script is modified
 
 jobs:
   run-reddit-stream:
@@ -32,4 +32,4 @@ jobs:
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         run: |
-          python reddit_kinesis_1.py
+          python Scripts/reddit_kinesis_1.py
