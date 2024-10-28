@@ -3,7 +3,7 @@ name: Reddit Kinesis Stream Pipeline
 on:
   push:
     paths:
-      - 'Scripts/reddit_kinesis_2.py'  # Only trigger when this script is modified
+      - 'Scripts/kinesis_processing_2.py'  # Only trigger when this script is modified
 
 jobs:
   run-reddit-stream:
@@ -32,4 +32,4 @@ jobs:
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}  # Reddit client secret from GitHub secrets
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}  # Reddit user agent from GitHub secrets
         run: |
-          python Scripts/reddit_kinesis_2.py  # Run the data processing script
+          python Scripts/kinesis_processing_2.py  # Run the data processing script
