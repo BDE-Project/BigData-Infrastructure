@@ -67,7 +67,7 @@ def stream_to_kinesis(submission):
 
 # Step 5: Stream new submissions from subreddit for 15 minutes
 start_time = datetime.now()
-max_duration = timedelta(minutes=15)  # Run the script for 15 minutes
+max_duration = timedelta(minutes=15)  # Run the script for 15 minutes for testing
 
 for submission in subreddit.stream.submissions():
     stream_to_kinesis(submission)
