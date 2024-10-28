@@ -35,6 +35,7 @@ jobs:
           - { name: 'Reddit Batch Processing', path: 'Scripts/reddit_batch_processing.py', deps: 'praw boto3' }
           - { name: 'Reddit Kinesis Stream 1', path: 'Scripts/reddit_kinesis_1.py', deps: 'praw boto3 python-dotenv' }
           - { name: 'Kinesis Processing 2', path: 'Scripts/kinesis_processing_2.py', deps: 'boto3 pandas textblob numpy' }
+          - { name: 'Reddit Lambda', path: 'Scripts/reddit_lambda.py', deps: 'boto3' }
 
     steps:
       - name: Check out code
