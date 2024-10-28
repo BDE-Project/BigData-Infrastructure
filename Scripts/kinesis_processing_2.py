@@ -176,7 +176,7 @@ def main():
     
     shard_iterator = shard_iterator_response['ShardIterator']
 
-    # Set the start time for the 30-minute limit for testing
+    # Set the start time for the 30-minute limit
     start_time = datetime.now(timezone.utc)
     time_limit = timedelta(minutes=30)
 
