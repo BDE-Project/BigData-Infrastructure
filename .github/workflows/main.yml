@@ -3,12 +3,11 @@ name: Reddit Data Pipeline
 on:
   push:
     paths:
-      - 'Scripts/reddit_batch_processing.py'  # Only trigger when this file changes
+      - 'Scripts/**'  # Trigger for any changes in the Scripts directory
 
 jobs:
-  run-reddit-script:
+  setup:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3  # Check out the code from your repo
@@ -18,18 +17,35 @@ jobs:
         with:
           python-version: '3.x'  # Ensure Python 3.x is installed
 
-      - name: Install dependencies
+      - name: Set Environment Variables
+        run: |
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_DEFAULT_REGION=eu-north-1" >> $GITHUB_ENV
+          echo "REDDIT_CLIENT_ID=${{ secrets.REDDIT_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "REDDIT_CLIENT_SECRET=${{ secrets.REDDIT_CLIENT_SECRET }}" >> $GITHUB_ENV
+          echo "REDDIT_USER_AGENT=${{ secrets.REDDIT_USER_AGENT }}" >> $GITHUB_ENV
+
+  run_scripts:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        script:
+          - { name: 'Reddit Batch Processing', path: 'Scripts/reddit_batch_processing.py', deps: 'praw boto3' }
+          - { name: 'Reddit Kinesis Stream 1', path: 'Scripts/reddit_kinesis_1.py', deps: 'praw boto3 python-dotenv' }
+          - { name: 'Kinesis Processing 2', path: 'Scripts/kinesis_processing_2.py', deps: 'boto3 pandas textblob numpy' }
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install praw boto3  # Install required Python packages
+          pip install ${{ matrix.script.deps }}
 
-      - name: Run Reddit Batch Script
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'eu-north-1'  # Set your AWS region
-          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}  # Add these as secrets
-          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
-          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}  
+      - name: Run Script
         run: |
-          python Scripts/reddit_batch_processing.py
+          python ${{ matrix.script.path }}
+        if: contains(github.event.head_commit.modified, matrix.script.path)
