@@ -64,8 +64,8 @@ csv_buffer = io.StringIO()
 csv_writer = csv.DictWriter(csv_buffer, fieldnames=['title', 'score', 'url', 'comments'])
 csv_writer.writeheader()
 
-# Write only the first 100 posts to the CSV for testing purposes
-for data in subreddit_data[:100]:  # You can change this limit as needed
+# Write only the first 150 posts to the CSV for testing purposes
+for data in subreddit_data[:150]:  # You can change this limit as needed
     csv_writer.writerow(data)
 
 # Upload the CSV file directly from memory to S3
