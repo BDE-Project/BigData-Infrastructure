@@ -1,7 +1,7 @@
 import os
 import json
 import time
-from datetime import datetime  
+from datetime import datetime, timedelta  # Add timedelta for time calculations
 import praw
 import boto3
 from dotenv import load_dotenv
@@ -17,14 +17,13 @@ reddit_user_agent = os.getenv('REDDIT_USER_AGENT')
 # Step 2: Initialize Kinesis client
 kinesis_client = boto3.client('kinesis', region_name='eu-north-1')
 
-
 # Step 3: Initialize Reddit API connection
 reddit = praw.Reddit(
     client_id=reddit_client_id,
     client_secret=reddit_client_secret,
     user_agent=reddit_user_agent
 )
-
+  
 # Step 4: Choose subreddit to stream from
 subreddit = reddit.subreddit("all")
 
@@ -54,7 +53,7 @@ def stream_to_kinesis(submission):
         'over_18': submission.over_18,
         'thumbnail': submission.thumbnail,
         'stickied': submission.stickied
-    }    
+    }
         
     # Debugging: Print the data before sending
     print(f"Data to send: {data}")
@@ -66,7 +65,16 @@ def stream_to_kinesis(submission):
     )
     print(f"Sent data to Kinesis: {response}")
 
-# Step 5: Stream new submissions from subreddit
+# Step 5: Stream new submissions from subreddit for 15 minutes
+start_time = datetime.now()
+max_duration = timedelta(minutes=15)  # Run the script for 15 minutes
+
 for submission in subreddit.stream.submissions():
     stream_to_kinesis(submission)
+    
+    # Break the loop if 15 minutes have passed
+    if datetime.now() - start_time > max_duration:
+        print("Stopping script after running for 15 minutes.")
+        break
+
     time.sleep(1)  # Adjust the delay if needed
