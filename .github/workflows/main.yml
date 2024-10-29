@@ -23,19 +23,30 @@ jobs:
           python -m pip install --upgrade pip
           pip install praw boto3 python-dotenv pandas numpy textblob  # Install all required packages
 
+      - name: Determine changed script
+        id: script
+        run: |
+          # Find the changed scripts
+          echo "Changed files:"
+          git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'Scripts/*.py' > changed_scripts.txt
+          if [ -s changed_scripts.txt ]; then
+            SCRIPT=$(cat changed_scripts.txt)
+            echo "SCRIPT=$SCRIPT" >> $GITHUB_ENV  # Set the script as an environment variable
+          else
+            echo "No valid script to run" && exit 1  # Exit with an error if no scripts found
+          fi
+
       - name: Run the Script
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'eu-north-1'  
-          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}  
+          AWS_DEFAULT_REGION: 'eu-north-1'  # Set your AWS region
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}  # Add these as secrets
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         run: |
-          case $GITHUB_EVENT_PATH in
-            *reddit_batch_processing.py*) python Scripts/reddit_batch_processing.py ;;
-            *reddit_kinesis_1.py*) python Scripts/reddit_kinesis_1.py ;;
-            *kinesis_processing_2.py*) python Scripts/kinesis_processing_2.py ;;
-            *reddit_lambda.py*) python Scripts/reddit_lambda.py ;;
-            *) echo "No valid script to run" ;;
-          esac
+          if [ -n "$SCRIPT" ]; then
+            python "$SCRIPT"  # Run the detected script
+          else
+            echo "No valid script to run" && exit 1
+          fi
