@@ -3,40 +3,35 @@ name: Reddit Data Pipeline
 on:
   push:
     paths:
-      - 'Scripts/*.py'  # Trigger for any changes in Python scripts in the Scripts directory
+      - 'Scripts/**'  # Trigger for any changes in the Scripts directory
 
 jobs:
   run-reddit-scripts:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3  # Check out the code from your repo
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/checkout@v3
         with:
-          python-version: '3.x'  # Ensure Python 3.x is installed
+          fetch-depth: 0  # Fetch all history for all branches and tags
 
-      # Install dependencies for all scripts
-      - name: Install dependencies
+      - name: Determine changed scripts
+        id: check-scripts
         run: |
-          python -m pip install --upgrade pip
-          pip install praw boto3 python-dotenv pandas numpy textblob  # Install all required packages
-
-      - name: Determine changed script
-        id: script
-        run: |
-          # Find the changed scripts
-          echo "Changed files:"
+          echo "Finding changed scripts..."
           git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'Scripts/*.py' > changed_scripts.txt
-          if [ -s changed_scripts.txt ]; then
-            SCRIPT=$(cat changed_scripts.txt)
-            echo "SCRIPT=$SCRIPT" >> $GITHUB_ENV  # Set the script as an environment variable
+          if [[ -s changed_scripts.txt ]]; then
+            echo "Scripts changed: $(cat changed_scripts.txt)"
+            echo "scripts_changed=true" >> $GITHUB_ENV
+            # Set the script to run, for example, the first changed script
+            echo "script=$(head -n 1 changed_scripts.txt)" >> $GITHUB_ENV
           else
-            echo "No valid script to run" && exit 1  # Exit with an error if no scripts found
+            echo "No valid scripts to run"
+            echo "scripts_changed=false" >> $GITHUB_ENV
           fi
 
       - name: Run the Script
+        if: env.scripts_changed == 'true'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -45,8 +40,4 @@ jobs:
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         run: |
-          if [ -n "$SCRIPT" ]; then
-            python "$SCRIPT"  # Run the detected script
-          else
-            echo "No valid script to run" && exit 1
-          fi
+          python Scripts/${{ env.script }}  # Run the script selected from the changed scripts
