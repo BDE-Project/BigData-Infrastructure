@@ -3,14 +3,11 @@ name: Reddit Data Pipeline
 on:
   push:
     paths:
-      - 'Scripts/**'  # Trigger for any changes in the Scripts directory
+      - 'Scripts/*.py'  # Trigger for any changes in Python scripts in the Scripts directory
 
 jobs:
   run-reddit-scripts:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        script: ['reddit_batch_processing.py', 'reddit_kinesis_1.py', 'kinesis_processing_2.py', 'reddit_lambda.py']
     steps:
       - name: Checkout code
         uses: actions/checkout@v3  # Check out the code from your repo
@@ -20,38 +17,25 @@ jobs:
         with:
           python-version: '3.x'  # Ensure Python 3.x is installed
 
-      # Install dependencies for each script
-      - name: Install dependencies for Reddit Batch Script
-        if: matrix.script == 'reddit_batch_processing.py'
+      # Install dependencies for all scripts
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install praw boto3  # Install required packages for reddit_batch_processing.py
-
-      - name: Install dependencies for Reddit Kinesis Script 1
-        if: matrix.script == 'reddit_kinesis_1.py'
-        run: |
-          python -m pip install --upgrade pip
-          pip install praw boto3 python-dotenv  # Install required packages for reddit_kinesis_1.py
-
-      - name: Install dependencies for Kinesis Processing Script 2
-        if: matrix.script == 'kinesis_processing_2.py'
-        run: |
-          python -m pip install --upgrade pip
-          pip install boto3 pandas textblob numpy  # Install required packages for kinesis_processing_2.py
-
-      - name: Install dependencies for Reddit Lambda Script
-        if: matrix.script == 'reddit_lambda.py'
-        run: |
-          python -m pip install --upgrade pip
-          pip install boto3 pandas numpy  # Install required packages for reddit_lambda.py
+          pip install praw boto3 python-dotenv pandas numpy textblob  # Install all required packages
 
       - name: Run the Script
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'eu-north-1'  # Set your AWS region
-          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}  # Add these as secrets
+          AWS_DEFAULT_REGION: 'eu-north-1'  
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}  
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         run: |
-          python Scripts/${{ matrix.script }}  # Run the script selected by the matrix
+          case $GITHUB_EVENT_PATH in
+            *reddit_batch_processing.py*) python Scripts/reddit_batch_processing.py ;;
+            *reddit_kinesis_1.py*) python Scripts/reddit_kinesis_1.py ;;
+            *kinesis_processing_2.py*) python Scripts/kinesis_processing_2.py ;;
+            *reddit_lambda.py*) python Scripts/reddit_lambda.py ;;
+            *) echo "No valid script to run" ;;
+          esac
