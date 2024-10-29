@@ -35,10 +35,11 @@ jobs:
           if [ -z "$changed_scripts" ]; then
             echo "No valid scripts to run"
             echo "scripts_changed=false" >> $GITHUB_ENV
+            echo "changed_scripts=" >> $GITHUB_ENV  # Set empty variable for changed_scripts
           else
             echo "Changed scripts: $changed_scripts"
-            echo "$changed_scripts" >> $GITHUB_ENV
             echo "scripts_changed=true" >> $GITHUB_ENV
+            echo "changed_scripts=${changed_scripts//$'\n'/,}" >> $GITHUB_ENV  # Join changed scripts into a comma-separated string
           fi
 
       - name: Run the Script
@@ -51,7 +52,11 @@ jobs:
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         run: |
-          for script in $(echo "${{ env.changed_scripts }}"); do
+          # Convert comma-separated list of changed scripts back to array
+          IFS=',' read -r -a scripts_array <<< "${{ env.changed_scripts }}"
+          
+          # Iterate over scripts and run them
+          for script in "${scripts_array[@]}"; do
             case "$script" in
               Scripts/reddit_batch_processing.py) python "$script" ;;
               Scripts/reddit_kinesis_1.py) python "$script" ;;
