@@ -11,7 +11,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3  # Check out the code from your repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for all branches
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -28,7 +30,6 @@ jobs:
         id: check-scripts
         run: |
           echo "Finding changed scripts..."
-          # Get changed scripts using git diff
           changed_scripts=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'Scripts/.*\.py' || true)
 
           if [ -z "$changed_scripts" ]; then
