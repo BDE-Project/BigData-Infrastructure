@@ -65,16 +65,16 @@ def stream_to_kinesis(submission):
     )
     print(f"Sent data to Kinesis: {response}")
 
-# Step 5: Stream new submissions from subreddit for 5 minutes
+# Step 5: Stream new submissions from subreddit for 3 minutes
 start_time = datetime.now()
-max_duration = timedelta(minutes=5)  # Run the script for 5 minutes
+max_duration = timedelta(minutes=3)  # Run the script for 3 minutes
 
 for submission in subreddit.stream.submissions():
     stream_to_kinesis(submission)
     
-    # Break the loop if 5 minutes have passed
+    # Break the loop if 3 minutes have passed
     if datetime.now() - start_time > max_duration:
-        print("Stopping script after running for 5 minutes.")
+        print("Stopping script after running for 3 minutes.")
         break
 
     time.sleep(1)  # Adjust the delay if needed
