@@ -64,36 +64,36 @@ csv_buffer = io.StringIO()
 csv_writer = csv.DictWriter(csv_buffer, fieldnames=['title', 'score', 'url', 'comments'])
 csv_writer.writeheader()
 
-# Write only the first 100 posts to the CSV for testing purposes
-for data in subreddit_data[:100]:  # You can change this limit as needed
-    csv_writer.writerow(data)
+# # Write only the first 100 posts to the CSV for testing purposes
+# for data in subreddit_data[:100]:  # You can change this limit as needed
+#     csv_writer.writerow(data)
 
-# Upload the CSV file directly from memory to S3
-try:
-    s3.put_object(Bucket=bucket_name, Key=filename, Body=csv_buffer.getvalue())
-    print(f"Uploaded {filename} to S3 bucket {bucket_name}")
-except Exception as e:
-    print(f"Error uploading file to S3: {e}")
+# # Upload the CSV file directly from memory to S3
+# try:
+#     s3.put_object(Bucket=bucket_name, Key=filename, Body=csv_buffer.getvalue())
+#     print(f"Uploaded {filename} to S3 bucket {bucket_name}")
+# except Exception as e:
+#     print(f"Error uploading file to S3: {e}")
 
-# Kinesis setup (this part remains unchanged)
-kinesis = boto3.client('kinesis', region_name='eu-north-1')
+# # Kinesis setup (this part remains unchanged)
+# kinesis = boto3.client('kinesis', region_name='eu-north-1')
 
-# Stream Reddit data to Kinesis
-for post in subreddit.hot(limit=10):
-    data = {
-        'title': post.title,
-        'score': post.score,
-        'url': post.url,
-        'comments': post.num_comments
-    }
-    kinesis.put_record(
-        StreamName='reddit-stream',
-        Data=json.dumps(data),
-        PartitionKey='partition_key'
-    )
+# # Stream Reddit data to Kinesis
+# for post in subreddit.hot(limit=10):
+#     data = {
+#         'title': post.title,
+#         'score': post.score,
+#         'url': post.url,
+#         'comments': post.num_comments
+#     }
+#     kinesis.put_record(
+#         StreamName='reddit-stream',
+#         Data=json.dumps(data),
+#         PartitionKey='partition_key'
+#     )
 
-# Kinesis: Get stream description and print Shard IDs
-response = kinesis.describe_stream(StreamName='reddit-stream')
-shards = response['StreamDescription']['Shards']
-for shard in shards:
-    print(f"Shard ID: {shard['ShardId']}")
+# # Kinesis: Get stream description and print Shard IDs
+# response = kinesis.describe_stream(StreamName='reddit-stream')
+# shards = response['StreamDescription']['Shards']
+# for shard in shards:
+#     print(f"Shard ID: {shard['ShardId']}")
