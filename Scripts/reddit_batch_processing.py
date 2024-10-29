@@ -7,8 +7,6 @@ import csv  # To create CSV format
 from datetime import datetime
 from botocore.exceptions import NoCredentialsError
 
-
-# testing
 def get_secret():
     secret_name = "redddit-user-secret" 
     region_name = "eu-north-1"
