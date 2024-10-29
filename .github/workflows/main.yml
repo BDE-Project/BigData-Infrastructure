@@ -3,7 +3,7 @@ name: Reddit Data Pipeline
 on:
   push:
     paths:
-      - 'Scripts/**'  # Trigger for any changes in the Scripts directory
+      - 'Scripts/*.py'  # Trigger for any changes in Python files within the Scripts directory
 
 jobs:
   run-reddit-scripts:
@@ -19,18 +19,19 @@ jobs:
         id: check-scripts
         run: |
           echo "Finding changed scripts..."
-          git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'Scripts/*.py' > changed_scripts.txt
-          if [[ -s changed_scripts.txt ]]; then
-            echo "Scripts changed: $(cat changed_scripts.txt)"
-            echo "scripts_changed=true" >> $GITHUB_ENV
-            # Set the script to run, for example, the first changed script
-            echo "script=$(head -n 1 changed_scripts.txt)" >> $GITHUB_ENV
-          else
+          # Get changed scripts using git diff
+          changed_scripts=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'Scripts/.*\.py' || true)
+
+          if [ -z "$changed_scripts" ]; then
             echo "No valid scripts to run"
             echo "scripts_changed=false" >> $GITHUB_ENV
+          else
+            echo "Changed scripts: $changed_scripts"
+            echo "scripts_changed=true" >> $GITHUB_ENV
+            echo "$changed_scripts" >> $GITHUB_ENV
           fi
 
-      - name: Run the Script
+      - name: Run changed scripts
         if: env.scripts_changed == 'true'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -40,4 +41,7 @@ jobs:
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         run: |
-          python Scripts/${{ env.script }}  # Run the script selected from the changed scripts
+          for script in $(echo "${{ env.changed_scripts }}"); do
+            echo "Running $script..."
+            python "$script"
+          done
