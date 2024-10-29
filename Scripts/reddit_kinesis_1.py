@@ -7,6 +7,7 @@ import boto3
 from dotenv import load_dotenv
 
 # Step 1: Load environment variables from .env file
+# testing
 load_dotenv()
 
 # Fetch Reddit API credentials from environment variables
