@@ -49,12 +49,18 @@ jobs:
             esac
           done
 
-          # Set environment variable to determine if both scripts were changed
+          # Set environment variable based on changes detected
           if $reddit_kinesis_changed && $kinesis_processing_changed; then
             echo "Both reddit_kinesis_1.py and kinesis_processing_2.py were changed."
             echo "scripts_changed=true" >> $GITHUB_ENV
+          elif $reddit_kinesis_changed; then
+            echo "Only reddit_kinesis_1.py was changed."
+            echo "scripts_changed=reddit_only" >> $GITHUB_ENV
+          elif $kinesis_processing_changed; then
+            echo "Only kinesis_processing_2.py was changed."
+            echo "scripts_changed=kinesis_only" >> $GITHUB_ENV
           else
-            echo "Not all required scripts were changed."
+            echo "No relevant Reddit scripts were changed."
             echo "scripts_changed=false" >> $GITHUB_ENV
           fi
 
@@ -73,8 +79,20 @@ jobs:
           python Scripts/reddit_kinesis_1.py
           python Scripts/kinesis_processing_2.py
 
+      # Handle the case where only reddit_kinesis_1.py was changed
+      - name: Notify on Only reddit_kinesis_1.py Change
+        if: env.scripts_changed == 'reddit_only'
+        run: |
+          echo "Notice: reddit_kinesis_1.py was changed, but kinesis_processing_2.py was not. Both scripts should be updated together."
+
+      # Handle the case where only kinesis_processing_2.py was changed
+      - name: Notify on Only kinesis_processing_2.py Change
+        if: env.scripts_changed == 'kinesis_only'
+        run: |
+          echo "Notice: kinesis_processing_2.py was changed, but reddit_kinesis_1.py was not. Both scripts should be updated together."
+
       # Notify when other scripts are changed
       - name: Notify on Other Script Changes
         if: env.scripts_changed == 'false' && github.event_name == 'push'
         run: |
-          echo "Other scripts have been changed, but reddit_kinesis_1.py and kinesis_processing_2.py were not affected."
+          echo "Other scripts have been changed, but neither reddit_kinesis_1.py nor kinesis_processing_2.py were affected."
