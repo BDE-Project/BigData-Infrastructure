@@ -176,14 +176,14 @@ def main():
     
     shard_iterator = shard_iterator_response['ShardIterator']
 
-    # Set the start time for the 2-hour limit
+    # Set the start time for the 2-minutes limit
     start_time = datetime.now(timezone.utc)
-    time_limit = timedelta(hours=2)
+    time_limit = timedelta(minutes=2)
 
     while True:
         # Check if the time limit has been reached
         if datetime.now(timezone.utc) - start_time >= time_limit:
-            logging.info("2-hour processing time limit reached. Exiting.")
+            logging.info("2-minutes processing time limit reached. Exiting.")
             break
 
         # Get records from Kinesis

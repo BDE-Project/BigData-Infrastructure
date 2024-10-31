@@ -68,7 +68,7 @@ csv_writer.writeheader()
 for data in subreddit_data[:100]:  # You can change this limit as needed
     csv_writer.writerow(data)
 
-# Upload the CSV file directly from memory to S3
+## Upload the CSV file directly from memory to S3
 try:
     s3.put_object(Bucket=bucket_name, Key=filename, Body=csv_buffer.getvalue())
     print(f"Uploaded {filename} to S3 bucket {bucket_name}")
