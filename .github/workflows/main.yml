@@ -33,40 +33,40 @@ jobs:
         id: check-scripts
         run: |
           echo "Checking for changed scripts..."
-          
+
           # Get the list of changed Python scripts
           changed_scripts=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'Scripts/.*\.py' || true)
 
-          # Flags to track changes in the specific scripts
+          # Initialize flags for script changes
           reddit_kinesis_changed=false
           kinesis_processing_changed=false
+          other_scripts_changed=false
 
           # Check for specific script changes
           for script in $changed_scripts; do
             case "$script" in
               Scripts/reddit_kinesis_1.py) reddit_kinesis_changed=true ;;
               Scripts/kinesis_processing_2.py) kinesis_processing_changed=true ;;
+              *) other_scripts_changed=true ;;
             esac
           done
 
           # Set environment variable based on changes detected
           if $reddit_kinesis_changed && $kinesis_processing_changed; then
-            echo "Both reddit_kinesis_1.py and kinesis_processing_2.py were changed."
-            echo "scripts_changed=true" >> $GITHUB_ENV
+            echo "scripts_changed=both" >> $GITHUB_ENV
           elif $reddit_kinesis_changed; then
-            echo "Only reddit_kinesis_1.py was changed."
             echo "scripts_changed=reddit_only" >> $GITHUB_ENV
           elif $kinesis_processing_changed; then
-            echo "Only kinesis_processing_2.py was changed."
             echo "scripts_changed=kinesis_only" >> $GITHUB_ENV
+          elif $other_scripts_changed; then
+            echo "scripts_changed=other_changed" >> $GITHUB_ENV
           else
-            echo "No relevant Reddit scripts were changed."
             echo "scripts_changed=false" >> $GITHUB_ENV
           fi
 
-      # Run both scripts if both were changed
+      # Execute both scripts if both were changed
       - name: Execute Reddit Kinesis Scripts
-        if: env.scripts_changed == 'true'
+        if: env.scripts_changed == 'both'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -93,6 +93,12 @@ jobs:
 
       # Notify when other scripts are changed
       - name: Notify on Other Script Changes
-        if: env.scripts_changed == 'false' && github.event_name == 'push'
+        if: env.scripts_changed == 'other_changed'
         run: |
           echo "Other scripts have been changed, but neither reddit_kinesis_1.py nor kinesis_processing_2.py were affected."
+
+      # Notify when no relevant scripts were changed
+      - name: Notify on No Relevant Script Changes
+        if: env.scripts_changed == 'false'
+        run: |
+          echo "No relevant Reddit scripts were changed in this commit."
