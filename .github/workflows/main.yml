@@ -6,9 +6,8 @@ on:
       - 'Scripts/*.py'  # Trigger on changes in any Python script within the Scripts directory
 
 jobs:
-  run-reddit-scripts:
+  run-other-scripts:
     runs-on: ubuntu-latest
-
     steps:
       # Checkout the repository code
       - name: Checkout code
@@ -37,8 +36,6 @@ jobs:
           echo "Changed scripts: $changed_scripts"  # Debug line
 
           # Initialize flags for script changes
-          reddit_kinesis_changed=false
-          kinesis_processing_changed=false
           reddit_batch_processing_changed=false
           reddit_lambda_changed=false
           dynamodb_processing_changed=false
@@ -48,8 +45,6 @@ jobs:
           # Update flags based on changed scripts
           for script in $changed_scripts; do
             case "$script" in
-              Scripts/reddit_kinesis_1.py) reddit_kinesis_changed=true ;;
-              Scripts/kinesis_processing_2.py) kinesis_processing_changed=true ;;
               Scripts/reddit_batch_processing.py) reddit_batch_processing_changed=true ;;
               Scripts/reddit_lambda.py) reddit_lambda_changed=true ;;
               Scripts/dynamodb_processing.py) dynamodb_processing_changed=true ;;
@@ -58,23 +53,8 @@ jobs:
             esac
           done
 
-          # Debug output for flags
-          echo "reddit_kinesis_changed=$reddit_kinesis_changed"
-          echo "kinesis_processing_changed=$kinesis_processing_changed"
-          echo "reddit_batch_processing_changed=$reddit_batch_processing_changed"
-          echo "reddit_lambda_changed=$reddit_lambda_changed"
-          echo "dynamodb_processing_changed=$dynamodb_processing_changed"
-          echo "reddit_stream_processing_changed=$reddit_stream_processing_changed"
-          echo "other_scripts_changed=$other_scripts_changed"
-
           # Set environment variable for changed scripts
-          if $reddit_kinesis_changed && $kinesis_processing_changed; then
-            echo "scripts_changed=both_kinesis" >> $GITHUB_ENV
-          elif $reddit_kinesis_changed; then
-            echo "scripts_changed=reddit_kinesis_only" >> $GITHUB_ENV
-          elif $kinesis_processing_changed; then
-            echo "scripts_changed=kinesis_only" >> $GITHUB_ENV
-          elif $reddit_batch_processing_changed; then
+          if $reddit_batch_processing_changed; then
             echo "scripts_changed=reddit_batch_only" >> $GITHUB_ENV
           elif $reddit_lambda_changed; then
             echo "scripts_changed=reddit_lambda_only" >> $GITHUB_ENV
@@ -116,11 +96,65 @@ jobs:
           echo "Running reddit_stream_processing.py..."
           python Scripts/reddit_stream_processing.py
 
-      # Notify if only one of the Kinesis scripts is changed
+  run-kinesis-scripts:
+    runs-on: ubuntu-latest
+    needs: run-other-scripts  # Only run this job after the other scripts
+
+    steps:
+      # Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for all branches
+
+      # Set up the Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'  # Use the latest version of Python 3
+
+      # Install necessary dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install praw boto3 python-dotenv pandas numpy textblob  # Install all required packages
+
+      # Determine which Kinesis scripts were changed
+      - name: Check for changed Kinesis scripts
+        id: check-kinesis-scripts
+        run: |
+          # Get the list of changed Kinesis-related Python scripts
+          changed_scripts=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'Scripts/.*kinesis.*\.py' || true)
+          echo "Changed Kinesis scripts: $changed_scripts"  # Debug line
+
+          # Initialize flags for Kinesis script changes
+          reddit_kinesis_changed=false
+          kinesis_processing_changed=false
+
+          # Update flags based on changed Kinesis scripts
+          for script in $changed_scripts; do
+            case "$script" in
+              Scripts/reddit_kinesis_1.py) reddit_kinesis_changed=true ;;
+              Scripts/kinesis_processing_2.py) kinesis_processing_changed=true ;;
+            esac
+          done
+
+          # Set environment variable for Kinesis script changes
+          if $reddit_kinesis_changed && $kinesis_processing_changed; then
+            echo "scripts_changed=both_kinesis" >> $GITHUB_ENV
+          elif $reddit_kinesis_changed; then
+            echo "scripts_changed=reddit_kinesis_only" >> $GITHUB_ENV
+          elif $kinesis_processing_changed; then
+            echo "scripts_changed=kinesis_only" >> $GITHUB_ENV
+          else
+            echo "scripts_changed=false" >> $GITHUB_ENV
+          fi
+
+      # Notify that both reddit_kinesis_1.py and kinesis_processing_2.py should be updated together
       - name: Notify that both reddit_kinesis_1.py and kinesis_processing_2.py should be updated together
         if: env.scripts_changed == 'reddit_kinesis_only' || env.scripts_changed == 'kinesis_only'
         run: |
-          echo "Both scripts must be changed together for reddit_kinesis_1.py and kinesis_processing_2.py to run..."
+          echo "Both reddit_kinesis_1.py and kinesis_processing_2.py should be updated together for them to run..."
 
       # Run both Reddit Kinesis 1 and Kinesis Processing 2 Scripts only if both are updated
       - name: Run Reddit Kinesis 1 and Kinesis Processing 2 Scripts
@@ -130,7 +164,7 @@ jobs:
           python Scripts/reddit_kinesis_1.py
           python Scripts/kinesis_processing_2.py
 
-      # Notify when no relevant scripts were changed
-      - name: Notify on No Relevant Script Changes
+      # Notify when no relevant Kinesis scripts were changed
+      - name: Notify on No Relevant Kinesis Script Changes
         if: env.scripts_changed == 'false'
-        run: echo "No relevant Reddit scripts were changed in this commit."
+        run: echo "No relevant Kinesis scripts were changed in this commit."
