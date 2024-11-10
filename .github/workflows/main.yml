@@ -90,7 +90,7 @@ jobs:
 
       # Notify if only one of the Kinesis scripts is changed
       - name: Notify that both reddit_kinesis_1.py and kinesis_processing_2.py should be updated together
-        if: env.scripts_changed == 'reddit_kinesis_only' || env.scripts_changed == 'kinesis_only' || env.scripts_changed == 'other_changed'
+        if: env.scripts_changed == 'reddit_kinesis_only' || env.scripts_changed == 'kinesis_only'
         run: |
           echo "Both scripts must be changed together for reddit_kinesis_1.py and kinesis_processing_2.py to run..."
 
