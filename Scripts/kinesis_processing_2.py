@@ -178,7 +178,7 @@ def main():
 
     # Set the start time for the 2-minutes limit
     start_time = datetime.now(timezone.utc)
-    time_limit = timedelta(minutes=40)
+    time_limit = timedelta(minutes=60)
 
     while True:
         # Check if the time limit has been reached
