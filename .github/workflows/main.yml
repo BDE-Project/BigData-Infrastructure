@@ -28,15 +28,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install praw boto3 python-dotenv pandas numpy textblob  # Install all required packages
 
-      # Determine if specific scripts were changed
+      # Determine which scripts were changed
       - name: Check for changed scripts
         id: check-scripts
         run: |
-          echo "Checking for changed scripts..."
-
-          # Get the list of changed Python scripts
           changed_scripts=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'Scripts/.*\.py' || true)
-
           echo "Changed scripts: $changed_scripts"  # Debug line
 
           # Initialize flags for script changes
@@ -48,7 +44,7 @@ jobs:
           reddit_stream_processing_changed=false
           other_scripts_changed=false
 
-          # Check for specific script changes
+          # Update flags based on changed scripts
           for script in $changed_scripts; do
             case "$script" in
               Scripts/reddit_kinesis_1.py) reddit_kinesis_changed=true ;;
@@ -61,7 +57,7 @@ jobs:
             esac
           done
 
-          # Set environment variables based on changes detected
+          # Set environment variable for changed scripts
           if $reddit_kinesis_changed && $kinesis_processing_changed; then
             echo "scripts_changed=both_kinesis" >> $GITHUB_ENV
           elif $reddit_kinesis_changed; then
@@ -82,79 +78,57 @@ jobs:
             echo "scripts_changed=false" >> $GITHUB_ENV
           fi
 
-      # Run reddit_batch_processing.py if it was changed
+      # Run Reddit Batch Processing Script
       - name: Run Reddit Batch Processing Script
-        if: env.scripts_changed == 'reddit_batch_only' || env.scripts_changed == 'both_kinesis' || env.scripts_changed == 'other_changed'
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'eu-north-1'
-          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
-          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
-          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+        if: env.scripts_changed == 'reddit_batch_only' || env.scripts_changed == 'other_changed'
         run: |
           echo "Running reddit_batch_processing.py..."
           python Scripts/reddit_batch_processing.py
 
-      # Run reddit_kinesis_1.py and kinesis_processing_2.py if both are changed
-      - name: Run Reddit Kinesis 1 and Kinesis Processing 2 Scripts
-        if: env.scripts_changed == 'both_kinesis' || env.scripts_changed == 'reddit_kinesis_only'
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'eu-north-1'
-          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
-          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
-          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+      # Run Reddit Kinesis and Kinesis Processing Scripts if both are changed
+      - name: Run Reddit Kinesis and Kinesis Processing Scripts
+        if: env.scripts_changed == 'both_kinesis'  # Only run if both scripts are changed
         run: |
           echo "Running reddit_kinesis_1.py and kinesis_processing_2.py..."
           python Scripts/reddit_kinesis_1.py
           python Scripts/kinesis_processing_2.py
 
-      # Run reddit_lambda.py if it was changed
+      # Run Reddit Kinesis 1 Script if it was changed but kinesis_processing_2.py was not
+      - name: Run Reddit Kinesis 1 Script
+        if: env.scripts_changed == 'reddit_kinesis_only' || env.scripts_changed == 'other_changed'
+        run: |
+          echo "Running reddit_kinesis_1.py..."
+          python Scripts/reddit_kinesis_1.py
+
+      # Run Kinesis Processing 2 Script if it was changed but reddit_kinesis_1.py was not
+      - name: Run Kinesis Processing 2 Script
+        if: env.scripts_changed == 'kinesis_only' || env.scripts_changed == 'other_changed'
+        run: |
+          echo "Running kinesis_processing_2.py..."
+          python Scripts/kinesis_processing_2.py
+
+      # Run Reddit Lambda Script
       - name: Run Reddit Lambda Script
         if: env.scripts_changed == 'reddit_lambda_only' || env.scripts_changed == 'other_changed'
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'eu-north-1'
-          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
-          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
-          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         run: |
           echo "Running reddit_lambda.py..."
           python Scripts/reddit_lambda.py
 
-      # Run dynamodb_processing.py if it was changed
+      # Run DynamoDB Processing Script
       - name: Run DynamoDB Processing Script
         if: env.scripts_changed == 'dynamodb_processing_only' || env.scripts_changed == 'other_changed'
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'eu-north-1'
         run: |
           echo "Running dynamodb_processing.py..."
           python Scripts/dynamodb_processing.py
 
-      # Run reddit_stream_processing.py if it was changed
+      # Run Reddit Stream Processing Script
       - name: Run Reddit Stream Processing Script
         if: env.scripts_changed == 'reddit_stream_processing_only' || env.scripts_changed == 'other_changed'
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'eu-north-1'
         run: |
           echo "Running reddit_stream_processing.py..."
           python Scripts/reddit_stream_processing.py
 
-      # Notify when other scripts are changed
-      - name: Notify on Other Script Changes
-        if: env.scripts_changed == 'other_changed'
-        run: |
-          echo "Other scripts have been changed, but neither reddit_kinesis_1.py nor kinesis_processing_2.py were affected."
-
       # Notify when no relevant scripts were changed
       - name: Notify on No Relevant Script Changes
         if: env.scripts_changed == 'false'
-        run: |
-          echo "No relevant Reddit scripts were changed in this commit."
+        run: echo "No relevant Reddit scripts were changed in this commit."
