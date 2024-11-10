@@ -45,6 +45,7 @@ jobs:
           reddit_batch_processing_changed=false
           reddit_lambda_changed=false
           dynamodb_processing_changed=false
+          reddit_stream_processing_changed=false
           other_scripts_changed=false
 
           # Check for specific script changes
@@ -55,6 +56,7 @@ jobs:
               Scripts/reddit_batch_processing.py) reddit_batch_processing_changed=true ;;
               Scripts/reddit_lambda.py) reddit_lambda_changed=true ;;
               Scripts/dynamodb_processing.py) dynamodb_processing_changed=true ;;
+              Scripts/reddit_stream_processing.py) reddit_stream_processing_changed=true ;;
               *) other_scripts_changed=true ;;
             esac
           done
@@ -72,6 +74,8 @@ jobs:
             echo "scripts_changed=reddit_lambda_only" >> $GITHUB_ENV
           elif $dynamodb_processing_changed; then
             echo "scripts_changed=dynamodb_processing_only" >> $GITHUB_ENV
+          elif $reddit_stream_processing_changed; then
+            echo "scripts_changed=reddit_stream_processing_only" >> $GITHUB_ENV
           elif $other_scripts_changed; then
             echo "scripts_changed=other_changed" >> $GITHUB_ENV
           else
@@ -128,6 +132,13 @@ jobs:
           echo "Running dynamodb_processing.py..."
           python Scripts/dynamodb_processing.py
 
+      # Run reddit_stream_processing.py if it was changed
+      - name: Run Reddit Stream Processing Script
+        if: env.scripts_changed == 'reddit_stream_processing_only' || env.scripts_changed == 'other_changed'
+        run: |
+          echo "Running reddit_stream_processing.py..."
+          python Scripts/reddit_stream_processing.py
+
       # Handle the case where only reddit_kinesis_1.py was changed
       - name: Notify on Only reddit_kinesis_1.py Change
         if: env.scripts_changed == 'reddit_kinesis_only'
@@ -151,6 +162,12 @@ jobs:
         if: env.scripts_changed == 'dynamodb_processing_only'
         run: |
           echo "Notice: dynamodb_processing.py was changed, but the full data pipeline (Reddit batch and Kinesis) may not be updated."
+
+      # Handle the case where only reddit_stream_processing.py was changed
+      - name: Notify on Only reddit_stream_processing.py Change
+        if: env.scripts_changed == 'reddit_stream_processing_only'
+        run: |
+          echo "Notice: reddit_stream_processing.py was changed, but the full data pipeline (Reddit batch and Kinesis) may not be updated."
 
       # Notify when other scripts are changed
       - name: Notify on Other Script Changes
