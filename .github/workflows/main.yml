@@ -79,28 +79,28 @@ jobs:
 
       # Run Reddit Batch Processing Script if it was changed
       - name: Run Reddit Batch Processing Script
-        if: env.scripts_changed == 'reddit_batch_only' || env.scripts_changed == 'other_changed'
+        if: ${{ env.scripts_changed == 'reddit_batch_only' || env.scripts_changed == 'other_changed' }}
         run: |
           echo "Running reddit_batch_processing.py..."
           python Scripts/reddit_batch_processing.py
 
       # Run Reddit Lambda Script if it was changed
       - name: Run Reddit Lambda Script
-        if: env.scripts_changed == 'reddit_lambda_only' || env.scripts_changed == 'other_changed'
+        if: ${{ env.scripts_changed == 'reddit_lambda_only' || env.scripts_changed == 'other_changed' }}
         run: |
           echo "Running reddit_lambda.py..."
           python Scripts/reddit_lambda.py
 
       # Run DynamoDB Processing Script if it was changed
       - name: Run DynamoDB Processing Script
-        if: env.scripts_changed == 'dynamodb_processing_only' || env.scripts_changed == 'other_changed'
+        if: ${{ env.scripts_changed == 'dynamodb_processing_only' || env.scripts_changed == 'other_changed' }}
         run: |
           echo "Running dynamodb_processing.py..."
           python Scripts/dynamodb_processing.py
 
       # Run Reddit Stream Processing Script if it was changed
       - name: Run Reddit Stream Processing Script
-        if: env.scripts_changed == 'reddit_stream_processing_only' || env.scripts_changed == 'other_changed'
+        if: ${{ env.scripts_changed == 'reddit_stream_processing_only' || env.scripts_changed == 'other_changed' }}
         run: |
           echo "Running reddit_stream_processing.py..."
           python Scripts/reddit_stream_processing.py
@@ -170,19 +170,19 @@ jobs:
 
       # Notify that both reddit_kinesis_1.py and kinesis_processing_2.py should be updated together
       - name: Notify that both reddit_kinesis_1.py and kinesis_processing_2.py should be updated together
-        if: env.scripts_changed == 'reddit_kinesis_only' || env.scripts_changed == 'kinesis_only'
+        if: ${{ env.scripts_changed == 'reddit_kinesis_only' || env.scripts_changed == 'kinesis_only' }}
         run: |
           echo "Both reddit_kinesis_1.py and kinesis_processing_2.py should be updated together for them to run..."
 
       # Run both Reddit Kinesis 1 and Kinesis Processing 2 Scripts only if both are updated
       - name: Run Reddit Kinesis 1 and Kinesis Processing 2 Scripts
-        if: env.scripts_changed == 'both_kinesis'
+        if: ${{ env.scripts_changed == 'both_kinesis' }}
         run: |
-          echo "Both reddit_kinesis_1.py and kinesis_processing_2.py have been updated, running both scripts..."
+          echo "Running both reddit_kinesis_1.py and kinesis_processing_2.py..."
           python Scripts/reddit_kinesis_1.py
           python Scripts/kinesis_processing_2.py
 
       # Notify when no relevant Kinesis scripts were changed
       - name: Notify on No Relevant Kinesis Script Changes
-        if: env.scripts_changed == 'false'
+        if: ${{ env.scripts_changed == 'false' }}
         run: echo "No relevant Kinesis scripts were changed in this commit."
