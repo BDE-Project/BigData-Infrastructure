@@ -88,20 +88,6 @@ jobs:
             echo "scripts_changed=false" >> $GITHUB_ENV
           fi
 
-      # Notify if only one of the Kinesis scripts is changed
-      - name: Notify that both reddit_kinesis_1.py and kinesis_processing_2.py should be updated together
-        if: env.scripts_changed == 'reddit_kinesis_only' || env.scripts_changed == 'kinesis_only'
-        run: |
-          echo "Both scripts must be changed together for reddit_kinesis_1.py and kinesis_processing_2.py to run..."
-
-      # Run both Reddit Kinesis 1 and Kinesis Processing 2 Scripts only if both are updated
-      - name: Run Reddit Kinesis 1 and Kinesis Processing 2 Scripts
-        if: env.scripts_changed == 'both_kinesis'
-        run: |
-          echo "Both reddit_kinesis_1.py and kinesis_processing_2.py have been updated, running both scripts..."
-          python Scripts/reddit_kinesis_1.py
-          python Scripts/kinesis_processing_2.py
-
       # Run Reddit Batch Processing Script if it was changed
       - name: Run Reddit Batch Processing Script
         if: env.scripts_changed == 'reddit_batch_only' || env.scripts_changed == 'other_changed'
@@ -129,6 +115,20 @@ jobs:
         run: |
           echo "Running reddit_stream_processing.py..."
           python Scripts/reddit_stream_processing.py
+
+      # Notify if only one of the Kinesis scripts is changed
+      - name: Notify that both reddit_kinesis_1.py and kinesis_processing_2.py should be updated together
+        if: env.scripts_changed == 'reddit_kinesis_only' || env.scripts_changed == 'kinesis_only'
+        run: |
+          echo "Both scripts must be changed together for reddit_kinesis_1.py and kinesis_processing_2.py to run..."
+
+      # Run both Reddit Kinesis 1 and Kinesis Processing 2 Scripts only if both are updated
+      - name: Run Reddit Kinesis 1 and Kinesis Processing 2 Scripts
+        if: env.scripts_changed == 'both_kinesis'
+        run: |
+          echo "Both reddit_kinesis_1.py and kinesis_processing_2.py have been updated, running both scripts..."
+          python Scripts/reddit_kinesis_1.py
+          python Scripts/kinesis_processing_2.py
 
       # Notify when no relevant scripts were changed
       - name: Notify on No Relevant Script Changes
