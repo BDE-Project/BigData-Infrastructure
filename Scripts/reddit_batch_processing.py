@@ -50,7 +50,7 @@ filename = f"reddit_batch_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"  #
 subreddit = reddit.subreddit('learnpython')
 subreddit_data = []
 
-for post in subreddit.hot(limit=10000):
+for post in subreddit.hot(limit=25000):
     data = {
         'title': post.title,
         'score': post.score,
