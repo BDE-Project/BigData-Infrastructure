@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install praw boto3 python-dotenv pandas numpy textblob aws-sdk  # Install all required packages
+          pip install praw boto3 python-dotenv pandas numpy textblob  # Install all required packages
 
       # Determine if specific scripts were changed
       - name: Check for changed scripts
@@ -128,6 +128,10 @@ jobs:
       # Run dynamodb_processing.py if it was changed
       - name: Run DynamoDB Processing Script
         if: env.scripts_changed == 'dynamodb_processing_only' || env.scripts_changed == 'other_changed'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'eu-north-1'
         run: |
           echo "Running dynamodb_processing.py..."
           python Scripts/dynamodb_processing.py
@@ -135,39 +139,13 @@ jobs:
       # Run reddit_stream_processing.py if it was changed
       - name: Run Reddit Stream Processing Script
         if: env.scripts_changed == 'reddit_stream_processing_only' || env.scripts_changed == 'other_changed'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'eu-north-1'
         run: |
           echo "Running reddit_stream_processing.py..."
           python Scripts/reddit_stream_processing.py
-
-      # Handle the case where only reddit_kinesis_1.py was changed
-      - name: Notify on Only reddit_kinesis_1.py Change
-        if: env.scripts_changed == 'reddit_kinesis_only'
-        run: |
-          echo "Notice: reddit_kinesis_1.py was changed, but kinesis_processing_2.py was not. Both scripts should be updated together."
-
-      # Handle the case where only kinesis_processing_2.py was changed
-      - name: Notify on Only kinesis_processing_2.py Change
-        if: env.scripts_changed == 'kinesis_only'
-        run: |
-          echo "Notice: kinesis_processing_2.py was changed, but reddit_kinesis_1.py was not. Both scripts should be updated together."
-
-      # Handle the case where only reddit_lambda.py was changed
-      - name: Notify on Only reddit_lambda.py Change
-        if: env.scripts_changed == 'reddit_lambda_only'
-        run: |
-          echo "Notice: reddit_lambda.py was changed, but the full data pipeline (Reddit batch and Kinesis) may not be updated."
-
-      # Handle the case where only dynamodb_processing.py was changed
-      - name: Notify on Only dynamodb_processing.py Change
-        if: env.scripts_changed == 'dynamodb_processing_only'
-        run: |
-          echo "Notice: dynamodb_processing.py was changed, but the full data pipeline (Reddit batch and Kinesis) may not be updated."
-
-      # Handle the case where only reddit_stream_processing.py was changed
-      - name: Notify on Only reddit_stream_processing.py Change
-        if: env.scripts_changed == 'reddit_stream_processing_only'
-        run: |
-          echo "Notice: reddit_stream_processing.py was changed, but the full data pipeline (Reddit batch and Kinesis) may not be updated."
 
       # Notify when other scripts are changed
       - name: Notify on Other Script Changes
